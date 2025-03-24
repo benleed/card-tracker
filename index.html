@@ -16,6 +16,9 @@
       .diamonds { background-color: blue; color: white; }
       .clubs { background-color: green; color: white; }
       .disabled { background-color: gray; }
+      .run { border: 4px solid purple; }
+      .set { border: 4px solid gold; }
+      .confused { border: 4px solid #00f2ff;}
     </style>
 
   </head>
@@ -30,7 +33,7 @@
       
       <h2>Opponent's Pickups</h2>
       <div class="card-grid">
-        <div v-for="card in sortedPickedUpCards" :key="card" :class="['card', getSuitColor(card)]" @click="pickedUpCards = pickedUpCards.filter(f => f !== card)">
+        <div v-for="card in sortedPickedUpCards" :key="card" :class="['card', getSuitColor(card), {set: possibleSet(card)}, {run: possibleRun(card)}, { confused: possibleSet(card) && possibleRun(card)}]" @click="pickedUpCards = pickedUpCards.filter(f => f !== card)">
           {{ card }}
         </div>
       </div>
@@ -50,6 +53,7 @@
       </div>
       
       <p><small>Left-click to discard, right-click to mark as picked up.</small></p>
+      <p><small class="run">Possible Run. </small><small class="set">Possible Set. </small><small class="confused">Unsure</small></p>
       <button @click="reset()">Reset</button>
     </div>
     <script>
@@ -77,7 +81,7 @@
 
           // All possible cards
           const suits = ['♠', '♥', '♦', '♣'];
-          const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+          const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K'];
           const deck = suits.flatMap(suit => ranks.map(rank => `${rank}${suit}`));
 
           // Function to determine suit color
@@ -98,12 +102,26 @@
           }
           function cardSort(a, b) {
             const suitOrder = { '♠': 0, '♥': 1, '♦': 2, '♣': 3 };
-            const rankOrder = { 'A': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13 };
+            const rankOrder = { 'A': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13 };
             
             const [rankA, suitA] = [a.slice(0, -1), a.slice(-1)];
             const [rankB, suitB] = [b.slice(0, -1), b.slice(-1)];
             
             return rankOrder[rankA] - rankOrder[rankB] || suitOrder[suitA] - suitOrder[suitB] ;
+          }
+          function possibleRun(card) {
+            const rank = card.split('')[0]
+            return discardedCards.value.filter(f => f.includes(rank)).length >= 2
+          }
+          function possibleSet(card) {
+            const [rank,suit] = card.split('')
+            return discardedCards.value.filter(f => {
+              const [r,s] = f.split('')
+              const rI = ranks.indexOf(r)
+              if (suit == s && Math.abs(rI - ranks.indexOf(rank)) <= 2)
+                return true;
+              return false;
+            }).length >= 2
           }
 
 
@@ -111,7 +129,7 @@
           const sortedPickedUpCards = computed(() => [...pickedUpCards.value].sort(cardSort));
 
           return { 
-            discardCard, pickUpCard, getSuitColor, isUsed, reset, cardSort,
+            discardCard, pickUpCard, getSuitColor, isUsed, reset, cardSort, possibleRun, possibleSet, 
             discardedCards, pickedUpCards, sortedDiscardedCards, sortedPickedUpCards, deck
           };
 
