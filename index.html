@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Card Tracker</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <script src="https://unpkg.com/vue@3.5.13/dist/vue.global.prod.js" ></script>
+    <style lang="text/css">
+      .card-grid { display: grid; grid-template-columns: repeat(13, 40px); gap: 5px; margin-bottom: 20px; }
+      .card { padding: 8px; border: 1px solid black; text-align: center; cursor: pointer; font-weight: bold; }
+      .hearts { background-color: red; color: white; }
+      .spades { background-color: black; color: white; }
+      .diamonds { background-color: blue; color: white; }
+      .clubs { background-color: green; color: white; }
+      .disabled { background-color: gray; }
+    </style>
+
+  </head>
+  <body>
+    <div id="app">
+      <h2>Opponent's Discards</h2>
+      <div class="card-grid">
+        <div v-for="card in sortedDiscardedCards" :key="card" :class="['card', getSuitColor(card)]" @click="discardedCards = discardedCards.filter(f => f !== card)">
+          {{ card }}
+        </div>
+      </div>
+      
+      <h2>Opponent's Pickups</h2>
+      <div class="card-grid">
+        <div v-for="card in sortedPickedUpCards" :key="card" :class="['card', getSuitColor(card)]" @click="pickedUpCards = pickedUpCards.filter(f => f !== card)">
+          {{ card }}
+        </div>
+      </div>
+      
+      
+      <h2>Deck</h2>
+      <div class="card-grid">
+        <div 
+          v-for="card in deck" 
+          :key="card"
+          :class="['card', getSuitColor(card), { disabled: isUsed(card) }]"
+          @click="discardCard(card)"
+          @contextmenu.prevent="pickUpCard(card)"
+        >
+          {{ card }}
+        </div>
+      </div>
+      
+      <p><small>Left-click to discard, right-click to mark as picked up.</small></p>
+      <button @click="reset()">Reset</button>
+    </div>
+    <script>
+      
+      const { createApp, ref, computed, reactive, watchEffect, onMounted } = Vue;
+  
+  
+      const app = {
+        setup() {
+          // Stores for discarded and picked-up cards
+          const discardedCards = ref([])
+          const pickedUpCards = ref([])
+
+          // Function to add a card to discarded list
+          function discardCard(card) {
+            if (!isUsed(card))
+              discardedCards.value.push(card);
+          }
+
+          // Function to add a card to picked-up list
+          function pickUpCard(card) {
+            if (!isUsed(card))
+              pickedUpCards.value.push(card)
+          }
+
+          // All possible cards
+          const suits = ['♠', '♥', '♦', '♣'];
+          const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+          const deck = suits.flatMap(suit => ranks.map(rank => `${rank}${suit}`));
+
+          // Function to determine suit color
+          function getSuitColor(card) {
+
+            if (card.includes('♥')) return 'hearts';
+            if (card.includes('♠')) return 'spades';
+            if (card.includes('♦')) return 'diamonds';
+            if (card.includes('♣')) return 'clubs';
+            return 'black';
+          }
+          function isUsed(card) {
+            return discardedCards.value.includes(card) || pickedUpCards.value.includes(card)
+          }
+          function reset() {
+            discardedCards.value = []
+            pickedUpCards.value = []
+          }
+          function cardSort(a, b) {
+            const suitOrder = { '♠': 0, '♥': 1, '♦': 2, '♣': 3 };
+            const rankOrder = { 'A': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13 };
+            
+            const [rankA, suitA] = [a.slice(0, -1), a.slice(-1)];
+            const [rankB, suitB] = [b.slice(0, -1), b.slice(-1)];
+            
+            return rankOrder[rankA] - rankOrder[rankB] || suitOrder[suitA] - suitOrder[suitB] ;
+          }
+
+
+          const sortedDiscardedCards = computed(() => [...discardedCards.value].sort(cardSort));
+          const sortedPickedUpCards = computed(() => [...pickedUpCards.value].sort(cardSort));
+
+          return { 
+            discardCard, pickUpCard, getSuitColor, isUsed, reset, cardSort,
+            discardedCards, pickedUpCards, sortedDiscardedCards, sortedPickedUpCards, deck
+          };
+
+        }
+      }
+  
+      createApp(app).mount('#app');
+    </script>
+  </body>
+</html>
